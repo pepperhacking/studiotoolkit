@@ -1,1 +1,18 @@
-Studio Tool Kit - created November 2, 2015.
+##############################################
+#                                            #
+#                Studio Tool Kit             #
+#                                            #
+# Created  : November 2nd, 2015              #
+# Author   : Aldebaran Studio                #
+# Copyright: Aldebaran                       #
+##############################################
+
+
+Summary:
+	Studio tool kit is a set of libraries and tools used by Studio Team to develop awesome applications 
+
+
+Content : 
+studiotoolkit/
+	README  - this file
+	python/ - the python libraries
