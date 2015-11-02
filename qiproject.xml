@@ -1,0 +1,5 @@
+<project version="3">
+  <maintainer email="hkuntz@aldebaran.com">Herman Kuntz</maintainer>
+  <maintainer email="ekroeger@aldebaran.com">Emile Kroeger</maintainer>
+  <qipython name="utilities" />
+</project>
