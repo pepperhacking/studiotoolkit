@@ -1,5 +1,12 @@
 <project version="3">
   <maintainer email="hkuntz@aldebaran.com">Herman Kuntz</maintainer>
   <maintainer email="ekroeger@aldebaran.com">Emile Kroeger</maintainer>
-  <qipython name="utilities" />
+  <maintainer email="jjeannin@aldebaran.com">Jerome Jeannin</maintainer>
+  <maintainer email="jeichberg@aldebaran.com">Jessica Eichberg</maintainer>
+  <maintainer email="olaugier@aldebaran.com">Olivier Laugier</maintainer>
+  <maintainer email="wbekhtaoui@aldebaran.com">Walid Bekhtaoui</maintainer>
+  <maintainer email="tcruz@aldebaran.com">Thalia Cruz</maintainer>
+  <maintainer email="epinault@aldebaran.com">Erwan Pinault</maintainer>
+  <maintainer email="pfribourg@aldebaran.com">Pierre Fribourg</maintainer>
+  <qipython name="studiotoolkit" />
 </project>
