@@ -4,7 +4,7 @@ stk.services.py
 Syntactic sugar for accessing NAOqi services.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __copyright__ = "Copyright 2015, Aldebaran Robotics"
 __author__ = 'ekroeger'
@@ -26,8 +26,6 @@ class ServiceCache(object):
 
     def __getattr__(self, servicename):
         "We overload this so (instance).ALMotion returns the service, or None."
-        if servicename[0] == "_":
-            raise AttributeError
         if (not servicename in self.services) or (
                 servicename == "ALTabletService"):
             # ugly hack: never cache ALtabletService, always ask for a new one
