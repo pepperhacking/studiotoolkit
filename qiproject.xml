@@ -8,5 +8,6 @@
   <maintainer email="tcruz@aldebaran.com">Thalia Cruz</maintainer>
   <maintainer email="epinault@aldebaran.com">Erwan Pinault</maintainer>
   <maintainer email="pfribourg@aldebaran.com">Pierre Fribourg</maintainer>
+  <maintainer email="tmarbache@aldebaran.com">Thibaut Marbache</maintainer>
   <qipython name="studiotoolkit" />
 </project>
