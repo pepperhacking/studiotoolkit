@@ -1,7 +1,7 @@
 """
 Sample 5: Logging
 
-Demonstrates robot_logging (only prints to log)
+Demonstrates stk.logging (only prints to log)
 """
 
 import sys
