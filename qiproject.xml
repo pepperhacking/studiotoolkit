@@ -9,5 +9,7 @@
   <maintainer email="epinault@aldebaran.com">Erwan Pinault</maintainer>
   <maintainer email="pfribourg@aldebaran.com">Pierre Fribourg</maintainer>
   <maintainer email="tmarbache@aldebaran.com">Thibaut Marbache</maintainer>
+  <maintainer email="amazel@aldebaran.com">Alexandre Mazel</maintainer>
+  <maintainer email="jlerebours@aldebaran.com">Jonas Lerebours</maintainer>
   <qipython name="studiotoolkit" />
 </project>
