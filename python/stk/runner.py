@@ -21,6 +21,7 @@ import qi
 # Helpers for making sure we have a robot to connect to
 #
 
+
 def check_commandline_args(description):
     "Checks whether command-line parameters are enough"
     import argparse
@@ -35,6 +36,7 @@ def is_on_robot():
     "Returns whether this is being executed on an Aldebaran robot."
     import platform
     return "aldebaran" in platform.platform()
+
 
 def get_debug_robot():
     "Returns IP address of debug robot, complaining if not found"
@@ -74,6 +76,7 @@ def init(qi_url=None):
     qiapp = qi.Application()
     qiapp.start()
     return qiapp
+
 
 # Main runner
 
@@ -121,6 +124,7 @@ def run_activity(activity_class, service_name=None):
             qi.async(activity.on_stop).wait()
         if service_id:
             qiapp.session.unregisterService(service_id)
+
 
 def run_service(service_class, service_name=None):
     """Instantiate the given class, and registers it as a NAOqi service.

@@ -31,6 +31,6 @@ class ServiceCache(object):
             # ugly hack: never cache ALtabletService, always ask for a new one
             try:
                 self.services[servicename] = self.session.service(servicename)
-            except RuntimeError: # Cannot find service
+            except RuntimeError:  # Cannot find service
                 self.services[servicename] = None
         return self.services[servicename]
