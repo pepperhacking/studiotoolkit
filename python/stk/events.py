@@ -5,7 +5,7 @@ Provides misc. wrappers for ALMemory and Signals (using the same syntax for
 handling both).
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __copyright__ = "Copyright 2015, Aldebaran Robotics"
 __author__ = 'ekroeger'
@@ -46,7 +46,7 @@ class EventHelper(object):
         self.handlers = {}  # a handler is (subscriber, connections)
         self.subscriber_names = {}
         self.wait_value = None
-        self.event_promise = None
+        self.wait_promise = None
 
     def init(self, session):
         "Sets the NAOqi session, if it wasn't passed to the constructor"
@@ -144,19 +144,34 @@ class EventHelper(object):
 
     def _on_wait_event(self, value):
         "Internal - callback for an event."
-        self.event_promise.setValue(value)
+        if self.wait_promise:
+            self.wait_promise.setValue(value)
+            self.wait_promise = None
 
     def _on_wait_signal(self, *args):
         "Internal - callback for a signal."
-        self.event_promise.setValue(args)
+        if self.wait_promise:
+            self.wait_promise.setValue(args)
+            self.wait_promise = None
+
+    def cancel_wait(self):
+        "Cancel the current wait (raises an exception in the waiting thread)"
+        if self.wait_promise:
+            self.wait_promise.setCanceled()
+            self.wait_promise = None
 
     def wait_for(self, event, subscribe=False):
         """Block until a certain event is raised, and returns it's value.
 
         If you pass subscribe=True, ALMemory.subscribeToEvent will be called
-        (sometimes necessary for side effects, i.e. WordRecognized)
+        (sometimes necessary for side effects, i.e. WordRecognized).
+
+        This will block a thread so you should avoid doing this too often!
         """
-        self.event_promise = qi.Promise()
+        if self.wait_promise:
+            # there was already a wait in progress, cancel it!
+            self.wait_promise.setCanceled()
+        self.wait_promise = qi.Promise()
         if subscribe:
             connection_id = self.subscribe(event, "EVENTHELPER",
                                            self._on_wait_event)
@@ -164,6 +179,8 @@ class EventHelper(object):
             connection_id = self.connect(event, self._on_wait_signal)
         else:
             connection_id = self.connect(event, self._on_wait_event)
-        result = self.event_promise.future().value()
-        self.disconnect(event, connection_id)
+        try:
+            result = self.wait_promise.future().value()
+        finally:
+            self.disconnect(event, connection_id)
         return result
