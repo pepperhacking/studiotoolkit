@@ -104,7 +104,7 @@ This mostly works the same as for an activity:
 
 ```python
 import qi
-import stk.services
+import stk.runner
 
 class ALAddition(object):
     def __init__(self, qiapp):
@@ -120,7 +120,7 @@ class ALAddition(object):
         self.qiapp.stop()
 
 if __name__ == "__main__":
-    stk.services.run_service(ALAddition)
+    stk.runner.run_service(ALAddition)
 ```
 
 Once run (even remotely), this service is available; for example with qicli:
