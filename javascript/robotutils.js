@@ -1,5 +1,5 @@
 /*
- * robotutils.js version 0.2
+ * robotutils.js version 0.3
  *
  * A utility library for naoqi;
  *
@@ -49,28 +49,71 @@ RobotUtils = (function(self) {
             var pendingServices = wantedServices.length;
             var services = new Array(wantedServices.length);
             var i;
-            for (i = 0; i < wantedServices.length; i++) {
-                (function (i){
-                    session.service(wantedServices[i]).then(function(service) {
-                        services[i] = service;
-                        pendingServices -= 1;
-                        if (pendingServices == 0) {
-                            servicesCallback.apply(undefined, services);
-                        }
-                    }, function() {
-                        var reason = "Failed getting a NaoQi Module: " + wantedServices[i]
-                        console.log(reason);
-                        if (errorCallback) {
-                            errorCallback(reason);
-                        }
-                    });
-                })(i);
-            }
+            wantedServices.forEach(function(serviceName, i) {
+                getService(session, serviceName, function(service) {
+                    services[i] = service;
+                    pendingServices -= 1;
+                    if (pendingServices == 0) {
+                        servicesCallback.apply(undefined, services);
+                    }
+                }, function() {
+                    var reason = "Failed getting a NaoQi Service: " +
+                                 serviceName;
+                    console.log(reason);
+                    if (errorCallback) {
+                        errorCallback(reason);
+                    }
+                });
+            });
         }, errorCallback);
     }
 
     // alias, so that the code looks natural when there is only one service.
     self.onService = self.onServices;
+
+    /* Helper to get services, and eventually retry if required.
+     *
+     */
+    function getService(session, serviceName, onSuccess, onFailure) {
+        session.service(serviceName).then(
+            function(service) {
+                onSuccess(service);
+            },
+            function() {
+                // Failure: the service wasn't there
+                if ( waitableServices[serviceName] ) {
+                    // It might be normal, try again in 200 ms.
+                    console.log("Waiting for service " + serviceName);
+                    setTimeout(function(){ getService(session,
+                        serviceName, onSuccess, onFailure) }, 200);
+                }
+                else {
+                    onFailure();
+                }
+            }
+        );
+    }
+
+    // services we want to wait when onServices is called
+    var waitableServices = {};
+
+    /* RobotUtils.setWaitableServices(serviceA, serviceB, ...)
+     *
+     * Flag some services as "to be awaited" - this means that if they
+     * are missing when RobotUtils.onServices(...) is called, if a
+     * service is missing then we will wait for it instead of failing.
+     *
+     * This is typically useful if you packaged your own service in your
+     * application and have launched it in parallel to showing a
+     * webpage, to handle the case where the page is ready before the
+     * service finished registering.
+     */
+    self.setWaitableServices = function()
+    {
+        Array.prototype.slice.call(arguments).forEach(function(serviceName) {
+            waitableServices[serviceName] = true;
+        });
+    }
 
     /* RobotUtils.subscribeToALMemoryEvent(event, eventCallback, subscribeDoneCallback)
      *
