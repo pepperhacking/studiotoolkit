@@ -13,6 +13,7 @@ If you use this library, you don't need to link to qimessaging.js in your html, 
 <script src="js/robotutils.js"></script>
 ```
 
+
 API reference
 ====
 
@@ -89,3 +90,12 @@ if (RobotUtils.robotIp) {
 ```
 
 That way the image will be fetched from the right location regardless of how you are accessing your page.
+
+Older versions of NAOqi
+====
+
+robotutils.js does not work on NAOqi version 2.1 and below - typically found on NAO. robotutils.qim1.js provides the same API but with compatibility with older versions of NAOqi:
+
+```html
+<script src="js/robotutils.qim1.js"></script>
+```
