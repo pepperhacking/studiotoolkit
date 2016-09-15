@@ -8,7 +8,7 @@ Python SDK, these helper functions just isolate some frequently used/hairy
 bits so you don't have them mixed in your logic.
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 __copyright__ = "Copyright 2015, Aldebaran Robotics"
 __author__ = 'ekroeger'
