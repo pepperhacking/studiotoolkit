@@ -25,7 +25,7 @@ def on(*keys):
             print "I was called!", value
 
     o = O()
-    events = EventsHelper()
+    events = EventHelper()
     events.connect_decorators(o)
 
     After that, whenever MyMemoryKey is raised, o.my_callback will be called
