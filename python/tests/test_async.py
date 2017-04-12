@@ -205,6 +205,36 @@ def test_return_stops_exec(services):
     time.sleep(0.1)
     assert state[0] == "STARTED"
 
+def test_yield_list(services):
+    "A list of futures works like the future of a list."
+    @stk.coroutines.async_generator
+    def run_a():
+        yield stk.coroutines.Return("A")
+    @stk.coroutines.async_generator
+    def run_b():
+        yield stk.coroutines.Return("B")
+    @stk.coroutines.async_generator
+    def run_yield_list():
+        values = yield [run_a(), run_b()]
+        assert values == ["A", "B"]
+        yield stk.coroutines.Return("OK")
+    assert run_yield_list().value() == "OK"
+
+def test_yield_tuple(services):
+    "A tuple of futures works like the future of a tuple."
+    @stk.coroutines.async_generator
+    def run_a():
+        yield stk.coroutines.Return("A")
+    @stk.coroutines.async_generator
+    def run_b():
+        yield stk.coroutines.Return("B")
+    @stk.coroutines.async_generator
+    def run_yield_list():
+        values = yield (run_a(), run_b())
+        assert values == ("A", "B")
+        yield stk.coroutines.Return("OK")
+    assert run_yield_list().value() == "OK"
+
 #if __name__ == "__main__":
 #    pytest.main(['--qiurl', '10.0.204.46'])
 

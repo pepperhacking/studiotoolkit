@@ -34,6 +34,38 @@ import functools
 
 import qi
 
+class _MultiFuture(object):
+    """Internal helper for handling lists of futures.
+
+    The callback will only be called once, with either an exception or a
+    list of the right type and size.
+    """
+    def __init__(self, futures, callback, returntype):
+        self.returntype = returntype
+        self.callback = callback
+        self.expecting = len(futures)
+        self.values = [None] * self.expecting
+        self.failed = False
+        for i, future in enumerate(futures):
+            future.then(lambda fut: self.__handle_part_done(i, fut))
+
+    def __handle_part_done(self, index, future):
+        "Internal callback for when a sub-function is done."
+        if self.failed:
+            # We already raised an exception, don't do anything else.
+            return
+        assert self.expecting, "Got more callbacks than expected!"
+        try:
+            self.values[index] = future.value()
+        except Exception as exception:
+            self.failed = True
+            self.callback(exception=exception)
+            return
+        self.expecting -= 1
+        if not self.expecting:
+            # We have all the values
+            self.callback(self.returntype(self.values))
+
 class GeneratorFuture(object):
     "Future-like object (same interface) made for wrapping a generator."
     def __init__(self, generator):
@@ -47,8 +79,7 @@ class GeneratorFuture(object):
     def __handle_done(self, future):
         "Internal callback for when the current sub-function is done."
         try:
-            value = future.value()
-            self.__ask_for_next(value)
+            self.__ask_for_next(future.value())
         except Exception as exception:
             self.__ask_for_next(exception=exception)
 
@@ -65,7 +96,11 @@ class GeneratorFuture(object):
                     future = self.generator.throw(exception)
                 else:
                     future = self.generator.send(arg)
-                if isinstance(future, Return):
+                if isinstance(future, list):
+                    _MultiFuture(future, self.__ask_for_next, list)
+                elif isinstance(future, tuple):
+                    _MultiFuture(future, self.__ask_for_next, tuple)
+                elif isinstance(future, Return):
                     # Special case: we returned a special "Return" object
                     # in this case, stop execution.
                     self.__finish(future.value)
