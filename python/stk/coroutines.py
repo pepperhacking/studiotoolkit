@@ -47,7 +47,8 @@ class GeneratorFuture(object):
     def __handle_done(self, future):
         "Internal callback for when the current sub-function is done."
         try:
-            self.__ask_for_next(future.value())
+            value = future.value()
+            self.__ask_for_next(value)
         except Exception as exception:
             self.__ask_for_next(exception=exception)
 
@@ -64,7 +65,12 @@ class GeneratorFuture(object):
                     future = self.generator.throw(exception)
                 else:
                     future = self.generator.send(arg)
-                future.then(self.__handle_done)
+                if isinstance(future, Return):
+                    # Special case: we returned a special "Return" object
+                    # in this case, stop execution.
+                    self.__finish(future.value)
+                else:
+                    future.then(self.__handle_done)
             except StopIteration:
                 self.__finish(None)
             except Exception as exc:
@@ -167,3 +173,8 @@ def async_generator(func):
         "Wrapped function"
         return GeneratorFuture(func(*args, **kwargs))
     return function
+
+class Return(object):
+    "Use to wrap a return function "
+    def __init__(self, value):
+        self.value = value

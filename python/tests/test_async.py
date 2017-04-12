@@ -19,7 +19,7 @@ TEST_KEY = "TestAsync/TestMemKey"
 
 # Parts of the future API
 TESTED = ['value', 'then', 'andThen', 'hasError', 'wait', 'isRunning',
-          'hasValue','isFinished', 'error', 'cancel',  'isCancelable',
+          'hasValue', 'isFinished', 'error', 'cancel', 'isCancelable',
           'isCanceled', 'addCallback', ]
 
 # Not tested:
@@ -129,7 +129,7 @@ def test_wrong_key(qiapp):
                                         _async=True)
     with pytest.raises(RuntimeError):
         func().value()
-        
+
 def test_wrong_function(qiapp):
     "An exception is raised when the function doesn't exist."
     services = stk.services.ServiceCache(qiapp.session)
@@ -163,7 +163,6 @@ def test_exception_in_future(qiapp):
     assert not future.hasValue()
     time.sleep(0.01)
     assert cb_called[0]
-    
 
 def test_cancel(services):
     "The code in the generator is executed asynchronously."
@@ -185,6 +184,26 @@ def test_cancel(services):
     assert services.ALMemory.getData(TEST_KEY) == 1
     time.sleep(0.3)
     assert services.ALMemory.getData(TEST_KEY) == 1
+
+def test_return(services):
+    "functions can return a value with coroutines.Return."
+    @stk.coroutines.async_generator
+    def run_return():
+        yield stk.coroutines.Return(42)
+    assert run_return().value() == 42
+
+def test_return_stops_exec(services):
+    "coroutines.Return acts like normal return, and stops execution."
+    state = ["NOT_STARTED"]
+    @stk.coroutines.async_generator
+    def run_return():
+        state[0] = "STARTED"
+        yield stk.coroutines.Return(42)
+        state[0] = "WENT_TOO_FAR"
+    assert run_return().value() == 42
+    assert state[0] == "STARTED"
+    time.sleep(0.1)
+    assert state[0] == "STARTED"
 
 #if __name__ == "__main__":
 #    pytest.main(['--qiurl', '10.0.204.46'])
