@@ -31,6 +31,7 @@ __author__ = 'ekroeger'
 __email__ = 'ekroeger@softbankrobotics.com'
 
 import functools
+import time
 
 import qi
 
@@ -46,6 +47,7 @@ class _MultiFuture(object):
         self.expecting = len(futures)
         self.values = [None] * self.expecting
         self.failed = False
+        self.futures = futures
         for i, future in enumerate(futures):
             future.then(lambda fut: self.__handle_part_done(i, fut))
 
@@ -66,53 +68,17 @@ class _MultiFuture(object):
             # We have all the values
             self.callback(self.returntype(self.values))
 
-class GeneratorFuture(object):
-    "Future-like object (same interface) made for wrapping a generator."
-    def __init__(self, generator):
-        self.generator = generator
+    def cancel(self):
+        for future in self.futures:
+            future.cancel()
+
+class FutureWrapper(object):
+    "Abstract base class for objects that pretend to be a future."
+    def __init__(self):
         self.running = True
         self.promise = qi.Promise()
         self.future = self.promise.future()
         self._exception = ""
-        self.__ask_for_next()
-
-    def __handle_done(self, future):
-        "Internal callback for when the current sub-function is done."
-        try:
-            self.__ask_for_next(future.value())
-        except Exception as exception:
-            self.__ask_for_next(exception=exception)
-
-    def __finish(self, value):
-        "Finish and return."
-        self.running = False
-        self.promise.setValue(value)
-
-    def __ask_for_next(self, arg=None, exception=None):
-        "Internal - get the next function in the generator."
-        if self.running:
-            try:
-                if exception:
-                    future = self.generator.throw(exception)
-                else:
-                    future = self.generator.send(arg)
-                if isinstance(future, list):
-                    _MultiFuture(future, self.__ask_for_next, list)
-                elif isinstance(future, tuple):
-                    _MultiFuture(future, self.__ask_for_next, tuple)
-                elif isinstance(future, Return):
-                    # Special case: we returned a special "Return" object
-                    # in this case, stop execution.
-                    self.__finish(future.value)
-                else:
-                    future.then(self.__handle_done)
-            except StopIteration:
-                self.__finish(None)
-            except Exception as exc:
-                self._exception = exc
-                self.running = False
-                self.promise.setError(str(exc))
-#                self.__finish(None) # May not be best way of finishing?
 
     def then(self, callback):
         """Add function to be called when the future is done; returns a future.
@@ -196,6 +162,64 @@ class GeneratorFuture(object):
     # You know what? I'm not implementing unwrap() because I don't see a
     # use case.
 
+
+class GeneratorFuture(FutureWrapper):
+    "Future-like object (same interface) made for wrapping a generator."
+    def __init__(self, generator):
+        FutureWrapper.__init__(self)
+        self.generator = generator
+        self.future.addCallback(self.__handle_finished)
+        self.sub_future = None
+        self.__ask_for_next()
+
+    def __handle_finished(self, future):
+        if self.running:
+            # promised was directly finished by someone else - cancel what we were doing!
+            self.running = False
+            if self.sub_future:
+                self.sub_future.cancel()
+
+    def __handle_done(self, future):
+        "Internal callback for when the current sub-function is done."
+        try:
+            self.__ask_for_next(future.value())
+        except Exception as exception:
+            self.__ask_for_next(exception=exception)
+
+    def __finish(self, value):
+        "Finish and return."
+        self.running = False
+        self.promise.setValue(value)
+
+    def __ask_for_next(self, arg=None, exception=None):
+        "Internal - get the next function in the generator."
+        if self.running:
+            try:
+                self.sub_future = None # TODO: handle multifuture
+                if exception:
+                    future = self.generator.throw(exception)
+                else:
+                    future = self.generator.send(arg)
+                if isinstance(future, list):
+                    self.sub_future = _MultiFuture(future, self.__ask_for_next, list)
+                elif isinstance(future, tuple):
+                    self.sub_future = _MultiFuture(future, self.__ask_for_next, tuple)
+                elif isinstance(future, Return):
+                    # Special case: we returned a special "Return" object
+                    # in this case, stop execution.
+                    self.__finish(future.value)
+                else:
+                    future.then(self.__handle_done)
+                    self.sub_future = future
+            except StopIteration:
+                self.__finish(None)
+            except Exception as exc:
+                self._exception = exc
+                self.running = False
+                self.promise.setError(str(exc))
+#                self.__finish(None) # May not be best way of finishing?
+
+
 def async_generator(func):
     """Decorator that turns a future-generator into a future.
 
@@ -213,3 +237,23 @@ class Return(object):
     "Use to wrap a return function "
     def __init__(self, value):
         self.value = value
+
+@async_generator
+def broken_sleep(t):
+    "Helper - async version of time.sleep"
+    time.sleep(t)
+    # TODO: instead of blocking a thread do something with qi.async
+    yield Return(None)
+
+MICROSECONDS_PER_SECOND = 1000000
+
+class _Sleep(FutureWrapper):
+    def __init__(self, time_in_secs):
+        FutureWrapper.__init__(self)
+        time_in_microseconds = int(MICROSECONDS_PER_SECOND * time_in_secs)
+        qi.async(self.set_finished, delay=time_in_microseconds)
+
+    def set_finished(self):
+        self.promise.setValue(None)
+
+sleep = _Sleep

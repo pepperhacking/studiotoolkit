@@ -185,6 +185,94 @@ def test_cancel(services):
     time.sleep(0.3)
     assert services.ALMemory.getData(TEST_KEY) == 1
 
+
+def test_sleep(services):
+    "Sleep works correctly."
+    services.ALMemory.raiseEvent(TEST_KEY, 0)
+    @stk.coroutines.async_generator
+    def run_test():
+        yield services.ALMemory.raiseEvent(TEST_KEY, 1, _async=True)
+        print "I'm gonna create my future"
+        try:
+            sleep_fut = stk.coroutines.sleep(0.2)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+        print "um, now what?"
+        yield services.ALMemory.raiseEvent(TEST_KEY, 2, _async=True)
+        print "oh yeah wait for that future"
+        yield sleep_fut
+        print "did the promise finish like it should?"
+        yield services.ALMemory.raiseEvent(TEST_KEY, 3, _async=True)
+    fut = run_test()
+    time.sleep(0.1)
+    assert services.ALMemory.getData(TEST_KEY) == 2
+    time.sleep(0.2)
+    assert services.ALMemory.getData(TEST_KEY) == 3
+
+
+def test_set_promise(services):
+    "You coroutine can prematurely finish a future by setting it's promise."
+    services.ALMemory.raiseEvent(TEST_KEY, 0)
+
+    global future_sub
+    future_sub = None
+
+    @stk.coroutines.async_generator
+    def run_mem():
+        global future_sub
+        yield services.ALMemory.raiseEvent(TEST_KEY, 1, _async=True)
+        future_sub = run_sub()
+        yield future_sub
+        yield services.ALMemory.raiseEvent(TEST_KEY, 4, _async=True)
+
+    @stk.coroutines.async_generator
+    def run_sub():
+        yield services.ALMemory.raiseEvent(TEST_KEY, 2, _async=True)
+        yield stk.coroutines.sleep(0.2)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 3, _async=True)
+
+    future = run_mem()
+    time.sleep(0.1)
+    assert services.ALMemory.getData(TEST_KEY) == 2
+    future_sub.promise.setValue("SUCCESS")
+    time.sleep(0.2)
+    assert services.ALMemory.getData(TEST_KEY) == 4
+
+def test_set_promise_multi(services):
+    "You coroutine can prematurely finish a future by setting it's promise."
+    services.ALMemory.raiseEvent(TEST_KEY, 0)
+
+    global future_sub
+    future_sub = None
+
+    @stk.coroutines.async_generator
+    def run_mem():
+        global future_sub
+        yield services.ALMemory.raiseEvent(TEST_KEY, 1, _async=True)
+        future_sub = run_sub()
+        yield future_sub
+        yield services.ALMemory.raiseEvent(TEST_KEY, 5, _async=True)
+
+    @stk.coroutines.async_generator
+    def run_sub_sub():
+        yield stk.coroutines.sleep(0.3)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 3, _async=True)
+
+    @stk.coroutines.async_generator
+    def run_sub():
+        yield services.ALMemory.raiseEvent(TEST_KEY, 2, _async=True)
+        pair = [stk.coroutines.sleep(0.2), run_sub_sub()]
+        yield pair
+        yield services.ALMemory.raiseEvent(TEST_KEY, 4, _async=True)
+
+    future = run_mem()
+    time.sleep(0.1)
+    assert services.ALMemory.getData(TEST_KEY) == 2
+    future_sub.promise.setValue("SUCCESS")
+    time.sleep(0.5)
+    assert services.ALMemory.getData(TEST_KEY) == 5
+
 def test_return(services):
     "functions can return a value with coroutines.Return."
     @stk.coroutines.async_generator
@@ -234,6 +322,23 @@ def test_yield_tuple(services):
         assert values == ("A", "B")
         yield stk.coroutines.Return("OK")
     assert run_yield_list().value() == "OK"
+
+
+def test_multisleep(services):
+    "Sleep works correctly."
+    services.ALMemory.raiseEvent(TEST_KEY, 0)
+    @stk.coroutines.async_generator
+    def run_test():
+        yield services.ALMemory.raiseEvent(TEST_KEY, 1, _async=True)
+        yield [stk.coroutines.sleep(0.2), stk.coroutines.sleep(0.2)]
+        yield services.ALMemory.raiseEvent(TEST_KEY, 2, _async=True)
+    fut = run_test()
+    time.sleep(0.1)
+    assert services.ALMemory.getData(TEST_KEY) == 1
+    time.sleep(0.2)
+    assert services.ALMemory.getData(TEST_KEY) == 2
+
+
 
 #if __name__ == "__main__":
 #    pytest.main(['--qiurl', '10.0.204.46'])
