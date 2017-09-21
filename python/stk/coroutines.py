@@ -32,6 +32,7 @@ __email__ = 'ekroeger@softbankrobotics.com'
 
 import functools
 import time
+import threading
 
 import qi
 
@@ -79,6 +80,7 @@ class FutureWrapper(object):
         self.promise = qi.Promise()
         self.future = self.promise.future()
         self._exception = ""
+        self.lock = threading.Lock()
 
     def then(self, callback):
         """Add function to be called when the future is done; returns a future.
@@ -148,8 +150,9 @@ class FutureWrapper(object):
 
     def cancel(self):
         "Cancel the future, and stop executing the sequence of actions."
-        self.running = False
-        self.promise.setCanceled()
+        with self.lock:
+            self.running = False
+            self.promise.setCanceled()
 
     def isCanceled(self):
         "Has this already been cancelled?"
@@ -188,8 +191,9 @@ class GeneratorFuture(FutureWrapper):
 
     def __finish(self, value):
         "Finish and return."
-        self.running = False
-        self.promise.setValue(value)
+        with self.lock:
+            self.running = False
+            self.promise.setValue(value)
 
     def __ask_for_next(self, arg=None, exception=None):
         "Internal - get the next function in the generator."
@@ -214,10 +218,11 @@ class GeneratorFuture(FutureWrapper):
             except StopIteration:
                 self.__finish(None)
             except Exception as exc:
-                self._exception = exc
-                self.running = False
-                self.promise.setError(str(exc))
-#                self.__finish(None) # May not be best way of finishing?
+                with self.lock:
+                    self._exception = exc
+                    self.running = False
+                    self.promise.setError(str(exc))
+#                   self.__finish(None) # May not be best way of finishing?
 
 
 def async_generator(func):
@@ -251,9 +256,10 @@ class _Sleep(FutureWrapper):
     def __init__(self, time_in_secs):
         FutureWrapper.__init__(self)
         time_in_microseconds = int(MICROSECONDS_PER_SECOND * time_in_secs)
-        qi.async(self.set_finished, delay=time_in_microseconds)
+        self.toto = qi.async(self.set_finished, delay=time_in_microseconds)
 
     def set_finished(self):
-        self.promise.setValue(None)
+        with self.lock:
+            self.promise.setValue(None)
 
 sleep = _Sleep

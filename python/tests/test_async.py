@@ -338,8 +338,39 @@ def test_multisleep(services):
     time.sleep(0.2)
     assert services.ALMemory.getData(TEST_KEY) == 2
 
+def test_sleep_more(services):
+    "Sleep works correctly."
+    time_in_sec = 0.01
+    @stk.coroutines.async_generator
+    def run_test():
+        yield stk.coroutines.sleep(time_in_sec)
+
+    cpt1 = 0
+
+    while cpt1 < 2000:
+        fut = run_test()
+        time.sleep(time_in_sec)
+
+        print "final bf", cpt1
+        
+        try:
+            # print "async"
+            fut.cancel()
+            # qi.async(fut.cancel())             
+            # print "after qi async"
+            # if(not fut.isFinished()):
+            #     print "\n***************\n", cpt1
+            #     fut.cancel()
+        except Exception as e:
+            pass
+        assert fut.isCanceled()
+        assert not fut.isRunning()
+
+        
+        cpt1 +=1
 
 
-#if __name__ == "__main__":
-#    pytest.main(['--qiurl', '10.0.204.46'])
+
+if __name__ == "__main__":
+   pytest.main(['--qiurl', '10.0.204.255'])
 
