@@ -24,7 +24,7 @@ As your function now returns a future, it can be used in "yield run_test()" in
 another function wrapped with this decorator.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __copyright__ = "Copyright 2017, Aldebaran Robotics / Softbank Robotics Europe"
 __author__ = 'ekroeger'
