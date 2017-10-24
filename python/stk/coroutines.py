@@ -262,12 +262,6 @@ class Return(object):
     def __init__(self, value):
         self.value = value
 
-@async_generator
-def broken_sleep(time_in_secs):
-    "Helper - async version of time.sleep"
-    time.sleep(time_in_secs)
-    yield Return(None)
-
 MICROSECONDS_PER_SECOND = 1000000
 
 class _Sleep(FutureWrapper):
