@@ -186,6 +186,30 @@ def test_cancel(services):
     assert services.ALMemory.getData(TEST_KEY) == 1
 
 
+def test_cancel_public(services):
+    "The code in the generator is executed asynchronously."
+    services.ALMemory.raiseEvent(TEST_KEY, 100)
+    @stk.coroutines.public_async_generator
+    def run_mem():
+        yield services.ALMemory.raiseEvent(TEST_KEY, 101, _async=True)
+        time.sleep(0.3)
+        # Dummy, unfortunately necessary.
+        yield services.ALMemory.getData(TEST_KEY, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 102, _async=True)
+    future = run_mem()
+    time.sleep(0.1)
+    #assert future.isCancelable()
+    assert not future.isCanceled()
+    future.cancel()
+    # qi raw future is not canceled if you cancel it -_-
+    #assert future.isCanceled()
+    #assert future.isFinished()
+    #assert not future.isRunning()
+    assert services.ALMemory.getData(TEST_KEY) == 101
+    time.sleep(0.3)
+    assert services.ALMemory.getData(TEST_KEY) == 101
+
+
 def test_sleep(services):
     "Sleep works correctly."
     services.ALMemory.raiseEvent(TEST_KEY, 10)

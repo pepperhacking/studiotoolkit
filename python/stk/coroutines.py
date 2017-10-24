@@ -24,7 +24,7 @@ As your function now returns a future, it can be used in "yield run_test()" in
 another function wrapped with this decorator.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __copyright__ = "Copyright 2017, Aldebaran Robotics / Softbank Robotics Europe"
 __author__ = 'ekroeger'
@@ -77,10 +77,14 @@ class FutureWrapper(object):
     "Abstract base class for objects that pretend to be a future."
     def __init__(self):
         self.running = True
-        self.promise = qi.Promise()
+        self.promise = qi.Promise(self._on_future_cancelled)
         self.future = self.promise.future()
         self._exception = ""
         self.lock = threading.Lock()
+
+    def _on_future_cancelled(self, promise):
+        """If someone from outside cancelled our future - propagate."""
+        promise.setCanceled()
 
     def then(self, callback):
         """Add function to be called when the future is done; returns a future.
@@ -176,8 +180,9 @@ class GeneratorFuture(FutureWrapper):
         self.__ask_for_next()
 
     def __handle_finished(self, future):
+        "Callback for when our future finished for any reason."
         if self.running:
-            # promised was directly finished by someone else - cancel what we were doing!
+            # promise was directly finished by someone else - cancel all!
             self.running = False
             if self.sub_future:
                 self.sub_future.cancel()
@@ -199,15 +204,17 @@ class GeneratorFuture(FutureWrapper):
         "Internal - get the next function in the generator."
         if self.running:
             try:
-                self.sub_future = None # TODO: handle multifuture
+                self.sub_future = None
                 if exception:
                     future = self.generator.throw(exception)
                 else:
                     future = self.generator.send(arg)
                 if isinstance(future, list):
-                    self.sub_future = _MultiFuture(future, self.__ask_for_next, list)
+                    self.sub_future = _MultiFuture(future, self.__ask_for_next,
+                                                   list)
                 elif isinstance(future, tuple):
-                    self.sub_future = _MultiFuture(future, self.__ask_for_next, tuple)
+                    self.sub_future = _MultiFuture(future, self.__ask_for_next,
+                                                   tuple)
                 elif isinstance(future, Return):
                     # Special case: we returned a special "Return" object
                     # in this case, stop execution.
@@ -224,7 +231,6 @@ class GeneratorFuture(FutureWrapper):
                     self.promise.setError(str(exc))
 #                   self.__finish(None) # May not be best way of finishing?
 
-
 def async_generator(func):
     """Decorator that turns a future-generator into a future.
 
@@ -238,6 +244,18 @@ def async_generator(func):
         return GeneratorFuture(func(*args, **kwargs))
     return function
 
+def public_async_generator(func):
+    """Variant of async_generator that returns an actual future.
+
+    This allows you to expose it through a qi interface (on a service), but
+    that means cancel will not stop the whole chain.
+    """
+    @functools.wraps(func)
+    def function(*args, **kwargs):
+        "Wrapped function"
+        return GeneratorFuture(func(*args, **kwargs)).future
+    return function
+
 class Return(object):
     "Use to wrap a return function "
     def __init__(self, value):
@@ -247,7 +265,6 @@ class Return(object):
 def broken_sleep(t):
     "Helper - async version of time.sleep"
     time.sleep(t)
-    # TODO: instead of blocking a thread do something with qi.async
     yield Return(None)
 
 MICROSECONDS_PER_SECOND = 1000000
