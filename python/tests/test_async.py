@@ -188,10 +188,10 @@ def test_cancel(services):
 
 def test_sleep(services):
     "Sleep works correctly."
-    services.ALMemory.raiseEvent(TEST_KEY, 0)
+    services.ALMemory.raiseEvent(TEST_KEY, 10)
     @stk.coroutines.async_generator
     def run_test():
-        yield services.ALMemory.raiseEvent(TEST_KEY, 1, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 11, _async=True)
         print "I'm gonna create my future"
         try:
             sleep_fut = stk.coroutines.sleep(0.2)
@@ -199,16 +199,17 @@ def test_sleep(services):
             import traceback
             traceback.print_exc()
         print "um, now what?"
-        yield services.ALMemory.raiseEvent(TEST_KEY, 2, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 12, _async=True)
         print "oh yeah wait for that future"
         yield sleep_fut
         print "did the promise finish like it should?"
-        yield services.ALMemory.raiseEvent(TEST_KEY, 3, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 13, _async=True)
     fut = run_test()
     time.sleep(0.1)
-    assert services.ALMemory.getData(TEST_KEY) == 2
+    assert services.ALMemory.getData(TEST_KEY) == 12
     time.sleep(0.2)
-    assert services.ALMemory.getData(TEST_KEY) == 3
+    assert services.ALMemory.getData(TEST_KEY) == 13
+    time.sleep(0.2)
 
 
 def test_set_promise(services):
@@ -221,23 +222,24 @@ def test_set_promise(services):
     @stk.coroutines.async_generator
     def run_mem():
         global future_sub
-        yield services.ALMemory.raiseEvent(TEST_KEY, 1, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 21, _async=True)
         future_sub = run_sub()
         yield future_sub
-        yield services.ALMemory.raiseEvent(TEST_KEY, 4, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 24, _async=True)
 
     @stk.coroutines.async_generator
     def run_sub():
-        yield services.ALMemory.raiseEvent(TEST_KEY, 2, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 22, _async=True)
         yield stk.coroutines.sleep(0.2)
-        yield services.ALMemory.raiseEvent(TEST_KEY, 3, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 23, _async=True)
 
     future = run_mem()
     time.sleep(0.1)
-    assert services.ALMemory.getData(TEST_KEY) == 2
+    assert services.ALMemory.getData(TEST_KEY) == 22
     future_sub.promise.setValue("SUCCESS")
     time.sleep(0.2)
-    assert services.ALMemory.getData(TEST_KEY) == 4
+    assert services.ALMemory.getData(TEST_KEY) == 24
+    time.sleep(0.2)
 
 def test_set_promise_multi(services):
     "You coroutine can prematurely finish a future by setting it's promise."
@@ -249,29 +251,29 @@ def test_set_promise_multi(services):
     @stk.coroutines.async_generator
     def run_mem():
         global future_sub
-        yield services.ALMemory.raiseEvent(TEST_KEY, 1, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 31, _async=True)
         future_sub = run_sub()
         yield future_sub
-        yield services.ALMemory.raiseEvent(TEST_KEY, 5, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 35, _async=True)
 
     @stk.coroutines.async_generator
     def run_sub_sub():
         yield stk.coroutines.sleep(0.3)
-        yield services.ALMemory.raiseEvent(TEST_KEY, 3, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 33, _async=True)
 
     @stk.coroutines.async_generator
     def run_sub():
-        yield services.ALMemory.raiseEvent(TEST_KEY, 2, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 32, _async=True)
         pair = [stk.coroutines.sleep(0.2), run_sub_sub()]
         yield pair
-        yield services.ALMemory.raiseEvent(TEST_KEY, 4, _async=True)
+        yield services.ALMemory.raiseEvent(TEST_KEY, 34, _async=True)
 
     future = run_mem()
     time.sleep(0.1)
-    assert services.ALMemory.getData(TEST_KEY) == 2
+    assert services.ALMemory.getData(TEST_KEY) == 32
     future_sub.promise.setValue("SUCCESS")
     time.sleep(0.5)
-    assert services.ALMemory.getData(TEST_KEY) == 5
+    assert services.ALMemory.getData(TEST_KEY) == 35
 
 def test_return(services):
     "functions can return a value with coroutines.Return."
@@ -347,7 +349,7 @@ def test_sleep_more(services):
 
     cpt1 = 0
 
-    while cpt1 < 2000:
+    while cpt1 < 20:# 2000 if you *really* want to be sure
         fut = run_test()
         time.sleep(time_in_sec)
 
