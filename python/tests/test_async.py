@@ -235,6 +235,7 @@ def test_set_promise(services):
 
     future = run_mem()
     time.sleep(0.1)
+    # WARNING: sometimes this test fails with value = 21; race condition?
     assert services.ALMemory.getData(TEST_KEY) == 22
     future_sub.promise.setValue("SUCCESS")
     time.sleep(0.2)
@@ -270,6 +271,7 @@ def test_set_promise_multi(services):
 
     future = run_mem()
     time.sleep(0.1)
+    # WARNING: sometimes this test fails with value = 31; race condition?
     assert services.ALMemory.getData(TEST_KEY) == 32
     future_sub.promise.setValue("SUCCESS")
     time.sleep(0.5)
