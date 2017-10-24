@@ -70,6 +70,7 @@ class _MultiFuture(object):
             self.callback(self.returntype(self.values))
 
     def cancel(self):
+        "Cancel all subfutures."
         for future in self.futures:
             future.cancel()
 
@@ -262,20 +263,22 @@ class Return(object):
         self.value = value
 
 @async_generator
-def broken_sleep(t):
+def broken_sleep(time_in_secs):
     "Helper - async version of time.sleep"
-    time.sleep(t)
+    time.sleep(time_in_secs)
     yield Return(None)
 
 MICROSECONDS_PER_SECOND = 1000000
 
 class _Sleep(FutureWrapper):
+    "Helper class that behaves like an async 'sleep' function"
     def __init__(self, time_in_secs):
         FutureWrapper.__init__(self)
         time_in_microseconds = int(MICROSECONDS_PER_SECOND * time_in_secs)
-        self.toto = qi.async(self.set_finished, delay=time_in_microseconds)
+        self.fut = qi.async(self.set_finished, delay=time_in_microseconds)
 
     def set_finished(self):
+        "Inner callback, finishes the future."
         with self.lock:
             self.promise.setValue(None)
 
