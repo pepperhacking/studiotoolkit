@@ -69,7 +69,7 @@ Events vs. Signals
 
 NAOqi has two related contepts:
 * ALMemory events (like `FrontTactilTouched`), handled by the ALMemory module
-* Signals (like `ALTabletService.onTouch`, handled by indivisual services
+* Signals (like `ALTabletService.onTouch`, handled by individual services
 
 NAOqi uses a different syntax for both, but `stk.events` wraps the two with the same syntax, so all the examples above would work the same with keys such as `ALTabletService.onTouch`.
 
